@@ -1,13 +1,14 @@
 import { LcrGameConsumer } from "./consumer";
 import { SimpleHistory } from "./history";
 import { LcrGame, LcrGameHistory } from "./lcr-game";
+import { Handler } from 'aws-lambda';
 
 type GameInput = {
     numPlayers: number,
     diceSequence: string
 }
 
-export const handler = (event : any) => {
+export const handler : Handler = async (event : any) => {
     const {
         numPlayers,
         diceSequence

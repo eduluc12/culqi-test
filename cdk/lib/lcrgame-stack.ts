@@ -26,8 +26,8 @@ export class LcrGameStack extends cdk.Stack {
       natGateways: 1,
       subnetConfiguration: [
         {
-          name: `LcrGameVpcPrivateSubnet`,
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          name: `LcrGameVpcPublicSubnet`,
+          subnetType: ec2.SubnetType.PUBLIC,
         },
       ],
     });
@@ -54,7 +54,7 @@ export class LcrGameStack extends cdk.Stack {
 
     const lcrGameRedisClusterSubnetGroup = new elasticcache.CfnSubnetGroup(this, `LcrGameRedisClusterSubnetGroup`, {
         description: "redis cluster subnet",
-        subnetIds: lcrGameVpc.isolatedSubnets.map((item) => item.subnetId),
+        subnetIds: lcrGameVpc.publicSubnets.map((item) => item.subnetId),
       }
     );
 
@@ -109,7 +109,7 @@ export class LcrGameStack extends cdk.Stack {
 
     const lambdaLcrGameProcess = new lambda.Function(this, 'LambdaLcrGameProcess', {
       runtime: lambda.Runtime.NODEJS_16_X,
-      handler: 'process.handler',
+      handler: 'algorithm.handler',
       code: lambda.Code.fromAsset(`${pathToSource}/dist`),
       timeout: cdk.Duration.seconds(30)
     });
@@ -142,7 +142,7 @@ export class LcrGameStack extends cdk.Stack {
 
     const lambdaLcrGameCrud = new lambda.Function(this, 'LambdaLcrGameCrud', {
       runtime: lambda.Runtime.NODEJS_16_X,
-      handler: 'process.handler',
+      handler: 'crud.handler',
       code: lambda.Code.fromAsset(`${pathToSource}/dist`),
       environment: {
         REDIS_ENDPOINT: lcrGameRedisCluster.attrRedisEndpointAddress,
@@ -155,7 +155,7 @@ export class LcrGameStack extends cdk.Stack {
       ],
       vpc: lcrGameVpc,
       vpcSubnets: {
-        subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+        subnetType: ec2.SubnetType.PUBLIC
       },
       role: new iam.Role(this, 'LambdaLcrGameCrudIamRule', {
         assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
@@ -168,6 +168,13 @@ export class LcrGameStack extends cdk.Stack {
                 resources: [lambdaLcrGameProcess.functionArn],
                 actions: [
                   'lambda:Invoke'
+                ]
+              }),
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+                actions: [
+                  'events:*'
                 ]
               })
             ]

@@ -3,7 +3,10 @@ const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
     entry: {
-        process: './src/lcr/process/index.ts'
+        algorithm: './src/lcr/process/algorithm/index.ts',
+        crud: './src/lcr/crud/index.ts',
+        save: './src/lcr/process/save/index.ts',
+        transform: './src/lcr/process/transform/index.ts'
     },
     target: 'node',
     externals: [nodeExternals()],
@@ -17,6 +20,22 @@ module.exports = {
     resolve: {
         extensions: ['.ts', '.js']
     },
+    plugins: [
+        new webpack.IgnorePlugin({
+            checkResource(resource) {
+                const lazyImports = ['@nestjs/microservices', '@nestjs/platform-express', '@nestjs/grahpql', 'cache-manager', 'class-validator', 'class-transformer', 'graphql'];
+                if (!lazyImports.includes(resource)) {
+                    return false;
+                }
+                try {
+                    require.resolve(resource);
+                } catch (err) {
+                    return true;
+                }
+                return false;
+            },
+        }),
+    ],
     module: {
         rules: [
             {
