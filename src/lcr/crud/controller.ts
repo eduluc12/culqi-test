@@ -6,7 +6,7 @@ import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { LcrGameCreateInput } from './dto/create';
 import { nanoid } from 'nanoid';
-@Controller()
+@Controller('games')
 export class LcrGameController{
 
     constructor(

@@ -60,7 +60,7 @@ export class LcrGameStack extends cdk.Stack {
 
     const lcrGameRedisCluster = new elasticcache.CfnCacheCluster(this, 'LcrGameRedisCluster', {
       engine: 'redis',
-      cacheNodeType: 'cache.t3.micro',
+      cacheNodeType: 'cache.t2.micro',
       numCacheNodes: 1,
       vpcSecurityGroupIds: [
         lcrGameVpcRedisSecurityGroup.securityGroupId
@@ -116,24 +116,58 @@ export class LcrGameStack extends cdk.Stack {
 
     const lambdaLcrGameSave = new lambda.Function(this, 'LambdaLcrGameSave', {
       runtime: lambda.Runtime.NODEJS_16_X,
-      handler: 'process.handler',
+      handler: 'save.handler',
       code: lambda.Code.fromAsset(`${pathToSource}/dist`),
       environment: {
         DYNAMODB_TABLE: lcrGameDatabase.tableName
       },
-      timeout: cdk.Duration.seconds(30)
+      timeout: cdk.Duration.seconds(30),
+      role: new iam.Role(this, 'LambdaLcrGameSaveRule', {
+        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+        roleName: 'LambdaLcrGameSaveRuleIamRule',
+        inlinePolicies: {
+          root: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+                actions: [
+                  'dynamodb:*'
+                ]
+              })
+            ]
+          })
+        }
+      })
     });
 
     lambdaLcrGameSave.addEventSource(new SqsEventSource(lcrGameSqs))
 
     const lambdaLcrGameTransform = new lambda.Function(this, 'LambdaLcrGameTransform', {
       runtime: lambda.Runtime.NODEJS_16_X,
-      handler: 'process.handler',
+      handler: 'transform.handler',
       code: lambda.Code.fromAsset(`${pathToSource}/dist`),
       environment: {
         DYNAMODB_TABLE: lcrGameDatabaseSync.tableName
       },
-      timeout: cdk.Duration.seconds(30)
+      timeout: cdk.Duration.seconds(30),
+      role: new iam.Role(this, 'LambdaLcrGameTransformIamRule', {
+        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+        roleName: 'lambdaLcrGameTransformIamRule',
+        inlinePolicies: {
+          root: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+                actions: [
+                  'dynamodb:*'
+                ]
+              })
+            ]
+          })
+        }
+      })
     });
 
     lambdaLcrGameTransform.addEventSource(new DynamoEventSource(lcrGameDatabase, {
@@ -147,7 +181,8 @@ export class LcrGameStack extends cdk.Stack {
       environment: {
         REDIS_ENDPOINT: lcrGameRedisCluster.attrRedisEndpointAddress,
         REDIS_PORT: lcrGameRedisCluster.attrRedisEndpointPort,
-        LAMBDA_PROCESS: lambdaLcrGameProcess.functionArn
+        LAMBDA_PROCESS: lambdaLcrGameProcess.functionArn,
+        DYNAMODB_TABLE: lcrGameDatabaseSync.tableName
       },
       timeout: cdk.Duration.seconds(30),
       securityGroups: [
@@ -176,6 +211,13 @@ export class LcrGameStack extends cdk.Stack {
                 actions: [
                   'events:*'
                 ]
+              }),
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+                actions: [
+                  'dynamodb:*'
+                ]
               })
             ]
           })
@@ -188,6 +230,9 @@ export class LcrGameStack extends cdk.Stack {
 
     const lcrGameApiGamesGameIdResource = lcrGameApi.root.addResource('games/{gameId}');
     lcrGameApiGamesGameIdResource.addMethod('GET', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
+
+    const lcrGameApiGamesGameIdResultsResource = lcrGameApi.root.addResource('games/{gameId}/results');
+    lcrGameApiGamesGameIdResultsResource.addMethod('GET', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
 
   }
 }
