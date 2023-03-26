@@ -114,7 +114,7 @@ describe('Lcr Game', () => {
         ])
     })
 
-    test('Should put the state nextRoll to the third player when he has the whole dices', () => {
+    test('Should put the state nextRoll to the fourth player when he has the whole dices', () => {
         lcrGame.setSettings(5, 'RL....C.L')
         while(!lcrGame.isGameOver()){
             lcrGame.play();
@@ -180,6 +180,22 @@ describe('Lcr Game', () => {
                 chips: 0
             }
         ])
+    })
+
+    test('Should put the state winner to the third player in the format', () => {
+        lcrGame.setSettings(3, 'LR.CCR.L.RLLLCLR.LL..R...CLR.')
+        while(!lcrGame.isGameOver()){
+            lcrGame.play();
+        }
+        expect(lcrGame.format()).toMatch(/Player 3: 6\(W\)/)
+    })
+
+    test('Should put the state nextRoll to the fourth player in the format', () => {
+        lcrGame.setSettings(5, 'RL....C.L')
+        while(!lcrGame.isGameOver()){
+            lcrGame.play();
+        }
+        expect(lcrGame.format()).toMatch(/Player 4: 4\(\*\)/)
     })
 
 })

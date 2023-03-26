@@ -103,7 +103,7 @@ export class LcrGame implements Format {
     }
 
     format() {
-        const getAllHistory = this.historyPerRound.getAll();
+        const getAllHistory = this.history.getAll();
         return getAllHistory.map(({ player, chips, placeChip, winner, nextRoll }) => {
             if (placeChip === LcrGamePlaceChip.PLAYER) {
                 let output = `Player ${player}: ${chips}`;
