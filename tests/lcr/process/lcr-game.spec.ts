@@ -136,7 +136,7 @@ describe('Lcr Game', () => {
             {
                 player: 4,
                 chips: 4,
-                nextToRoll: true
+                nextRoll: true
             },
             {
                 player: 5,
@@ -144,6 +144,40 @@ describe('Lcr Game', () => {
             },
             {
                 chips: 1
+            }
+        ])
+    })
+
+    test('Should put the state nextRoll to the first player when he cannot play because the dices are not enough', () => {
+        lcrGame.setSettings(5, 'RR')
+        while(!lcrGame.isGameOver()){
+            lcrGame.play();
+        }
+        const historyAll = history.getAll();
+        expect(historyAll).toMatchObject([
+            {
+                player: 1,
+                chips: 3,
+                nextRoll: true
+            },
+            {
+                player: 2,
+                chips: 3
+            },
+            {
+                player: 3,
+                chips: 3,
+            },
+            {
+                player: 4,
+                chips: 3,
+            },
+            {
+                player: 5,
+                chips: 3,
+            },
+            {
+                chips: 0
             }
         ])
     })
