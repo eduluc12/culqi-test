@@ -16,7 +16,7 @@ export type LcrGameHistory = {
     placeChip: LcrGamePlaceChip
 }
 
-export class LcrGame implements Format {
+export class LcrGame {
 
     private numPlayers: number = 0;
     private chipsTable: [Map<number, number>, number] = [new Map(), 0];
@@ -33,9 +33,7 @@ export class LcrGame implements Format {
         this.numPlayers = numPlayers;
         this.consumer.entry(diceSequence);
         const [players] = this.chipsTable;
-        for (let i = 1; i <= numPlayers; i++) {
-            players.set(i, 3);
-        }
+        for (let i = 1; i <= numPlayers; i++) players.set(i, 3);
     }
 
     play() {
@@ -102,18 +100,18 @@ export class LcrGame implements Format {
         return gameOver;
     }
 
-    format() {
-        const getAllHistory = this.history.getAll();
-        return getAllHistory.map(({ player, chips, placeChip, winner, nextRoll }) => {
-            if (placeChip === LcrGamePlaceChip.PLAYER) {
-                let output = `Player ${player}: ${chips}`;
-                output += winner ? '(W)' : '';
-                output += nextRoll ? '(*)' : '';
-                return output;
-            }
-            return `Center: ${chips}`;
-        }).join(EOL);
-    }
+    // format() {
+    //     const getAllHistory = this.history.getAll();
+    //     return getAllHistory.map(({ player, chips, placeChip, winner, nextRoll }) => {
+    //         if (placeChip === LcrGamePlaceChip.PLAYER) {
+    //             let output = `Player ${player}: ${chips}`;
+    //             output += winner ? '(W)' : '';
+    //             output += nextRoll ? '(*)' : '';
+    //             return output;
+    //         }
+    //         return `Center: ${chips}`;
+    //     }).join(EOL);
+    // }
 
     private playDice() {
         const player = this.playerTurn;

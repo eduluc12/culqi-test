@@ -3,7 +3,7 @@ const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
     entry: {
-        hello: './src/index.ts'
+        process: './src/lcr/process/index.ts'
     },
     target: 'node',
     externals: [nodeExternals()],
