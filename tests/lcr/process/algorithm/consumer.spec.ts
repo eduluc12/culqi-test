@@ -1,4 +1,4 @@
-import { LcrGameConsumer } from "../../../src/lcr/process/consumer";
+import { LcrGameConsumer } from "../../../../src/lcr/process/algorithm/consumer";
 
 describe('LcrGameConsumer', () => {
 

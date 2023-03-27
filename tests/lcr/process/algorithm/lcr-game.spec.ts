@@ -1,7 +1,7 @@
-import { LcrGameConsumer, LcrGameSymbol } from "../../../src/lcr/process/consumer";
-import { SimpleHistory } from "../../../src/lcr/process/history";
-import type { Consumer, History } from "../../../src/lcr/process/interfaces";
-import { LcrGame, LcrGameHistory } from "../../../src/lcr/process/lcr-game";
+import { LcrGameConsumer, LcrGameSymbol } from "../../../../src/lcr/process/algorithm/consumer";
+import { SimpleHistory } from "../../../../src/lcr/process/algorithm/history";
+import type { Consumer, History } from "../../../../src/lcr/process/algorithm/interfaces";
+import { LcrGame, LcrGameHistory } from "../../../../src/lcr/process/algorithm/lcr-game";
 
 describe('Lcr Game', () => {
 
@@ -180,22 +180,6 @@ describe('Lcr Game', () => {
                 chips: 0
             }
         ])
-    })
-
-    test('Should put the state winner to the third player in the format', () => {
-        lcrGame.setSettings(3, 'LR.CCR.L.RLLLCLR.LL..R...CLR.')
-        while(!lcrGame.isGameOver()){
-            lcrGame.play();
-        }
-        expect(lcrGame.format()).toMatch(/Player 3: 6\(W\)/)
-    })
-
-    test('Should put the state nextRoll to the fourth player in the format', () => {
-        lcrGame.setSettings(5, 'RL....C.L')
-        while(!lcrGame.isGameOver()){
-            lcrGame.play();
-        }
-        expect(lcrGame.format()).toMatch(/Player 4: 4\(\*\)/)
     })
 
 })

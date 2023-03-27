@@ -6,7 +6,7 @@ import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { LcrGameCreateInput } from './dto/create';
 import { nanoid } from 'nanoid';
-@Controller('games')
+@Controller('/games')
 export class LcrGameController{
 
     constructor(
@@ -17,7 +17,7 @@ export class LcrGameController{
     ){}
 
     @Post()
-    async create(@Body() payload : LcrGameCreateInput){
+    async index(@Body() payload : LcrGameCreateInput){
         const {
             diceSequence,
             numPlayers
@@ -32,7 +32,7 @@ export class LcrGameController{
         }
     }
 
-    @Get(':gameId')
+    @Get('/:gameId')
     async process(@Param('gameId') gameId : string){
         const gameData = await this.redis.get(gameId);
         if(!gameData) throw new Error();
@@ -44,11 +44,12 @@ export class LcrGameController{
         const gameResult = JSON.parse(response);
         await this.eventbridge.send(new PutEventsCommand({
             Entries: [{
-                Source: 'lcrgame',
+                Source: 'lcrgame.result',
                 Detail: JSON.stringify({
                     gameId,
                     result: gameResult
-                })
+                }),
+                DetailType: "gameOver",
             }],
         }));
         return {
@@ -57,10 +58,10 @@ export class LcrGameController{
         }
     }
 
-    @Get(':gameId/results')
+    @Get('/:gameId/results')
     async results(@Param('gameId') gameId : string){
         const data = await this.dynamodb.send(new GetItemCommand({
-            TableName: process.env.DYNAMO_TABLE,
+            TableName: process.env.DYNAMODB_TABLE,
             Key: marshall({
                 gameId
             })

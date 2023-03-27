@@ -1,11 +1,11 @@
 import { DynamoDBStreamEvent, Handler } from 'aws-lambda';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { DynamoDBClient, PutItemCommand, AttributeValue } from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import {EOL} from 'os';
 
 type TransformInput = {
     gameId: string,
-    results: string
+    result: string
 }
 
 export const handler : Handler = async (event : DynamoDBStreamEvent) => {
@@ -14,14 +14,15 @@ export const handler : Handler = async (event : DynamoDBStreamEvent) => {
         const {
             dynamodb
         } = item;
+        console.log(dynamodb?.NewImage, typeof dynamodb?.NewImage)
         const {
             gameId,
-            results
-        } = dynamodb?.NewImage as TransformInput
-        const data = JSON.parse(results);
+            result
+        } = unmarshall(dynamodb?.NewImage as Record<string, AttributeValue>) as TransformInput
+        const data = JSON.parse(result);
         const formatting = format(data);
         return client.send(new PutItemCommand({
-            TableName: process.env.DYNAMO_TABLE,
+            TableName: process.env.DYNAMODB_TABLE,
             Item: marshall({
                 gameId,
                 result: formatting
@@ -41,5 +42,5 @@ const format = (history : any[]) => {
             return output;
         }
         return `Center: ${chips}`;
-    }).join(EOL);
+    }).join(' | ');
 }

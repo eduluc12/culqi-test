@@ -11,9 +11,12 @@ module.exports = {
     },
     mode: 'development',
     target: 'node',
-    externals: [nodeExternals({
-        allowlist: ['@nestjs/core', '@redis/client', '@vendia/serverless-express', 'nanoid']
-    })],
+    externals: [
+        nodeExternals({
+            modulesDir: path.resolve(__dirname, './opt/nodejs/node_modules'),
+        }),
+        nodeExternals()
+    ],
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: '[name].js',
@@ -49,6 +52,7 @@ module.exports = {
                     loader: 'swc-loader',
                     options: {
                         jsc: {
+                            target: 'es2018',
                             parser: {
                                 syntax: "typescript",
                                 decorators: true
@@ -56,7 +60,8 @@ module.exports = {
                             transform: {
                                 legacyDecorator: true,
                                 decoratorMetadata: true
-                            }
+                            },
+                            externalHelpers: false,
                         }
                     }
                 }

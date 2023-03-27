@@ -1,5 +1,5 @@
-import { SimpleHistory } from "../../../src/lcr/process/history";
-import type { History } from "../../../src/lcr/process/interfaces";
+import { SimpleHistory } from "../../../../src/lcr/process/algorithm/history";
+import type { History } from "../../../../src/lcr/process/algorithm/interfaces";
 
 describe('History', () => {
 

@@ -3,16 +3,18 @@ import { createClient } from '@redis/client';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { LcrGameController } from "./controller";
 
 @Module({
-    controllers: [],
+    controllers: [LcrGameController],
     providers: [
         {
             provide: 'REDIS_CLIENT',
             useFactory: async () => {
                 const client = createClient({
-                    url: process.env.REDIS_ENDPOINT,
+                    url: `redis://${process.env.REDIS_ENDPOINT}:${process.env.REDIS_PORT}`,
                 });
+                client.on('ready', () => console.log('Ready for connecting on redis'));
                 client.on('error', err => console.log('Redis Client Error', err));
                 await client.connect();
                 return client;

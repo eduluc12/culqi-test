@@ -11,7 +11,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { resolve } from 'path';
 import { EventField, RuleTargetInput } from 'aws-cdk-lib/aws-events';
 import { SqsEventSource, DynamoEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { ManagedPolicy, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import * as elasticcache from 'aws-cdk-lib/aws-elasticache';
 
 export class LcrGameStack extends cdk.Stack {
@@ -21,13 +21,20 @@ export class LcrGameStack extends cdk.Stack {
     const pathToSource = resolve(__dirname, '../../');
 
     const lcrGameVpc = new ec2.Vpc(this, `LcrGameVpc`, {
-      maxAzs: 1,
-      cidr: "10.100.100.0/24",
-      natGateways: 1,
+      maxAzs: 2,
+      cidr: "10.100.150.0/24",
       subnetConfiguration: [
         {
           name: `LcrGameVpcPublicSubnet`,
           subnetType: ec2.SubnetType.PUBLIC,
+        },
+        {
+          name: `LcrGameVpcPrivateSubnet1`,
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+        {
+          name: `LcrGameVpcPrivateSubnet2`,
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
         },
       ],
     });
@@ -40,6 +47,35 @@ export class LcrGameStack extends cdk.Stack {
         allowAllOutbound: true
       }
     );
+
+    lcrGameVpcLambdaSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.allTcp())
+
+    lcrGameVpc.addInterfaceEndpoint('lcrGameVpcInterfaceLambda', {
+      service: ec2.InterfaceVpcEndpointAwsService.LAMBDA,
+      privateDnsEnabled: true,
+      securityGroups: [lcrGameVpcLambdaSecurityGroup],
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+      }
+    })
+
+    lcrGameVpc.addInterfaceEndpoint('lcrGameVpcInterfaceEvents', {
+      service: ec2.InterfaceVpcEndpointAwsService.EVENTBRIDGE,
+      privateDnsEnabled: true,
+      securityGroups: [lcrGameVpcLambdaSecurityGroup],
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+      }
+    })
+
+    lcrGameVpc.addGatewayEndpoint('lcrGameVpcGatewayDynamodb', {
+      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+      subnets: [
+        {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+        }
+      ]
+    })
 
     const lcrGameVpcRedisSecurityGroup = new ec2.SecurityGroup(
       this,
@@ -54,7 +90,7 @@ export class LcrGameStack extends cdk.Stack {
 
     const lcrGameRedisClusterSubnetGroup = new elasticcache.CfnSubnetGroup(this, `LcrGameRedisClusterSubnetGroup`, {
         description: "redis cluster subnet",
-        subnetIds: lcrGameVpc.publicSubnets.map((item) => item.subnetId),
+        subnetIds: lcrGameVpc.isolatedSubnets.map((item) => item.subnetId),
       }
     );
 
@@ -65,7 +101,7 @@ export class LcrGameStack extends cdk.Stack {
       vpcSecurityGroupIds: [
         lcrGameVpcRedisSecurityGroup.securityGroupId
       ],
-      cacheSubnetGroupName: lcrGameRedisClusterSubnetGroup.ref
+      cacheSubnetGroupName: lcrGameRedisClusterSubnetGroup.ref,
     });
 
     const lcrGameApi = new apigateway.RestApi(this, 'LcrGameApi', {
@@ -79,7 +115,8 @@ export class LcrGameStack extends cdk.Stack {
         name: 'gameId',
         type: dynamodb.AttributeType.STRING
       },
-      stream: dynamodb.StreamViewType.NEW_IMAGE
+      stream: dynamodb.StreamViewType.NEW_IMAGE,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
     const lcrGameDatabaseSync = new dynamodb.Table(this, 'LcrGameDatabaseSync', {
@@ -88,30 +125,49 @@ export class LcrGameStack extends cdk.Stack {
       partitionKey: {
         name: 'gameId',
         type: dynamodb.AttributeType.STRING
-      }
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
     const lcrGameSqs = new sqs.Queue(this, 'LcrGameSqs', {
       queueName: 'lcrGameSqs',
-      visibilityTimeout: cdk.Duration.seconds(30 * 6)
+      visibilityTimeout: cdk.Duration.seconds(30 * 6),
+      removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
     const lcrGameRuleEventBridge = new events.Rule(this, 'LcrGameRuleEventBridge', {
       eventPattern: {
-        source: ["lcrgame"],
+        source: ["lcrgame.result"],
       },
     });
 
     lcrGameRuleEventBridge.addTarget(new target.SqsQueue(lcrGameSqs, {
       retryAttempts: 3,
-      message: RuleTargetInput.fromText(EventField.fromPath('$.detail'))
+      message: RuleTargetInput.fromObject({
+        result: EventField.fromPath('$.detail')
+      })
     }))
+
+    const lcrGameLayer = new lambda.LayerVersion(this, 'LcrGameLayer', {
+      compatibleRuntimes: [
+        lambda.Runtime.NODEJS_16_X
+      ],
+      code: lambda.Code.fromAsset(`${pathToSource}/opt`)
+    });
 
     const lambdaLcrGameProcess = new lambda.Function(this, 'LambdaLcrGameProcess', {
       runtime: lambda.Runtime.NODEJS_16_X,
       handler: 'algorithm.handler',
       code: lambda.Code.fromAsset(`${pathToSource}/dist`),
-      timeout: cdk.Duration.seconds(30)
+      timeout: cdk.Duration.seconds(30),
+      role: new iam.Role(this, 'LambdaLcrGameProcessRule', {
+        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+        roleName: 'LambdaLcrGameProcessIamRole',
+        managedPolicies: [
+          ManagedPolicy.fromManagedPolicyArn(this, 'LambdaLcrGameProcessAWSLambdaBasicExecutionRole', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole')
+        ]
+      }),
+      layers: [lcrGameLayer]
     });
 
     const lambdaLcrGameSave = new lambda.Function(this, 'LambdaLcrGameSave', {
@@ -125,6 +181,9 @@ export class LcrGameStack extends cdk.Stack {
       role: new iam.Role(this, 'LambdaLcrGameSaveRule', {
         assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
         roleName: 'LambdaLcrGameSaveRuleIamRule',
+        managedPolicies: [
+          ManagedPolicy.fromManagedPolicyArn(this, 'LambdaLcrGameSaveAWSLambdaBasicExecutionRole', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole')
+        ],
         inlinePolicies: {
           root: new iam.PolicyDocument({
             statements: [
@@ -138,7 +197,8 @@ export class LcrGameStack extends cdk.Stack {
             ]
           })
         }
-      })
+      }),
+      layers: [lcrGameLayer]
     });
 
     lambdaLcrGameSave.addEventSource(new SqsEventSource(lcrGameSqs))
@@ -154,6 +214,9 @@ export class LcrGameStack extends cdk.Stack {
       role: new iam.Role(this, 'LambdaLcrGameTransformIamRule', {
         assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
         roleName: 'lambdaLcrGameTransformIamRule',
+        managedPolicies: [
+          ManagedPolicy.fromManagedPolicyArn(this, 'LambdaLcrGameTransformAWSLambdaBasicExecutionRole', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole')
+        ],
         inlinePolicies: {
           root: new iam.PolicyDocument({
             statements: [
@@ -167,7 +230,8 @@ export class LcrGameStack extends cdk.Stack {
             ]
           })
         }
-      })
+      }),
+      layers: [lcrGameLayer]
     });
 
     lambdaLcrGameTransform.addEventSource(new DynamoEventSource(lcrGameDatabase, {
@@ -190,11 +254,15 @@ export class LcrGameStack extends cdk.Stack {
       ],
       vpc: lcrGameVpc,
       vpcSubnets: {
-        subnetType: ec2.SubnetType.PUBLIC
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED
       },
       role: new iam.Role(this, 'LambdaLcrGameCrudIamRule', {
         assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
         roleName: 'lambdaLcrGameCrudIamRule',
+        managedPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2FullAccess'),
+          ManagedPolicy.fromManagedPolicyArn(this, 'LambdaLcrGameCrudAWSLambdaBasicExecutionRole', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole')
+        ],
         inlinePolicies: {
           root: new iam.PolicyDocument({
             statements: [
@@ -202,7 +270,7 @@ export class LcrGameStack extends cdk.Stack {
                 effect: iam.Effect.ALLOW,
                 resources: [lambdaLcrGameProcess.functionArn],
                 actions: [
-                  'lambda:Invoke'
+                  'lambda:*'
                 ]
               }),
               new iam.PolicyStatement({
@@ -222,17 +290,14 @@ export class LcrGameStack extends cdk.Stack {
             ]
           })
         }
-      })
+      }),
+      layers: [lcrGameLayer]
     });
 
-    const lcrGameApiGamesResource = lcrGameApi.root.addResource('games');
-    lcrGameApiGamesResource.addMethod('POST', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
+    lcrGameApi.root.addMethod('ANY', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
 
-    const lcrGameApiGamesGameIdResource = lcrGameApi.root.addResource('games/{gameId}');
-    lcrGameApiGamesGameIdResource.addMethod('GET', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
-
-    const lcrGameApiGamesGameIdResultsResource = lcrGameApi.root.addResource('games/{gameId}/results');
-    lcrGameApiGamesGameIdResultsResource.addMethod('GET', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
+    const lcrGameApiGamesResource = lcrGameApi.root.addResource('{proxy+}');
+    lcrGameApiGamesResource.addMethod('ANY', new apigateway.LambdaIntegration(lambdaLcrGameCrud))
 
   }
 }

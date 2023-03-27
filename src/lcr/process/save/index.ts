@@ -4,13 +4,16 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 
 export const handler : Handler = async (event : SQSEvent) => {
     const client = new DynamoDBClient({});
-    const records = event.Records.map(({body}) => {
+    const records = event.Records.map(({
+        body
+    }) => {
+        const parsed = JSON.parse(body);
         const {
             gameId,
             result
-        } = JSON.parse(body);
+        } = parsed.result;
         return client.send(new PutItemCommand({
-            TableName: process.env.DYNAMO_TABLE,
+            TableName: process.env.DYNAMODB_TABLE,
             Item: marshall({
                 gameId,
                 result: JSON.stringify(result)

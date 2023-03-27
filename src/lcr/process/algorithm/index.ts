@@ -12,7 +12,7 @@ export const handler : Handler = async (event : any) => {
     const {
         numPlayers,
         diceSequence
-    } = JSON.parse(event) as GameInput;
+    } = event as GameInput;
     const consumer = new LcrGameConsumer();
     const history = new SimpleHistory<LcrGameHistory>();
     const lcrGame = new LcrGame(consumer, history);
