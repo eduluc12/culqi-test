@@ -4,7 +4,7 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { LcrGameCreateInput } from './dto/create';
+import type { LcrGameCreateInput } from './dto/create';
 import { nanoid } from 'nanoid';
 @Controller('/games')
 export class LcrGameController{
