@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "webpack",
-    "deploy": "cd ./cdk && npm run cdk deploy"
+    "deploy": "cd ./cdk && npm run cdk deploy",
+    "destroy": "cd ./cdk && npm run cdk destroy"
   },
   "author": "",
   "license": "ISC",
