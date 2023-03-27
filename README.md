@@ -56,7 +56,7 @@ npm run deploy
 
 ## Destroying
 
-For destroying our game, we need to have our **AWS's Credentials**, afterwards we just need to execute the next command
+For destroying the infrastructure, we need to have our **AWS's Credentials**, afterwards we just need to execute the next command
 
 ```bash
 npm run destroy
