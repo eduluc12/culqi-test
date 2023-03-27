@@ -1,4 +1,3 @@
-import { EOL } from 'os';
 import type { Consumer, History, Format } from './interfaces';
 import type { LcrGameSymbol } from './consumer';
 import { SimpleHistory } from './history';
@@ -99,19 +98,6 @@ export class LcrGame {
 
         return gameOver;
     }
-
-    // format() {
-    //     const getAllHistory = this.history.getAll();
-    //     return getAllHistory.map(({ player, chips, placeChip, winner, nextRoll }) => {
-    //         if (placeChip === LcrGamePlaceChip.PLAYER) {
-    //             let output = `Player ${player}: ${chips}`;
-    //             output += winner ? '(W)' : '';
-    //             output += nextRoll ? '(*)' : '';
-    //             return output;
-    //         }
-    //         return `Center: ${chips}`;
-    //     }).join(EOL);
-    // }
 
     private playDice() {
         const player = this.playerTurn;
