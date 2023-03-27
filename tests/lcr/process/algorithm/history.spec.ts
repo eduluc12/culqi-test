@@ -51,7 +51,6 @@ describe('History', () => {
     });
 
     test("Should concat two histories", () => {
-        // Arrange
         const simpleHistory1 = new SimpleHistory<string>();
         const simpleHistory2 = new SimpleHistory<string>();
         const payload1 = "test payload 1";
@@ -59,10 +58,8 @@ describe('History', () => {
         simpleHistory1.save(payload1);
         simpleHistory2.save(payload2);
 
-        // Act
         simpleHistory1.append(simpleHistory2);
 
-        // Assert
         expect(simpleHistory1.getAll()).toHaveLength(2);
         expect(simpleHistory1.getAll()).toContain(payload1);
         expect(simpleHistory1.getAll()).toContain(payload2);
