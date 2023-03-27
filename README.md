@@ -35,7 +35,7 @@ npm test
 For building we need to execute the next command in the project's root
 
 ```bash
-npm build
+npm run build
 ```
 
 ## Deploying
@@ -43,7 +43,7 @@ npm build
 For deploying our game, we need to have our **AWS's Credentials**, afterwards we just need to execute the next command
 
 ```bash
-npm deploy
+npm run deploy
 ```
 
 | :exclamation:  Important   |
@@ -53,6 +53,14 @@ npm deploy
 - The solution incurs in costs, this due to the services we need to consume, such as:
     - VPC endpoint
     - Redis (this could be free if you haven't overpassed the free tier)
+
+## Destroying
+
+For destroying our game, we need to have our **AWS's Credentials**, afterwards we just need to execute the next command
+
+```bash
+npm run destroy
+```
 
 ## Steps
 
