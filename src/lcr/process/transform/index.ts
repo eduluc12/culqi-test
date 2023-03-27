@@ -1,5 +1,6 @@
 import { DynamoDBStreamEvent, Handler } from 'aws-lambda';
 import { DynamoDBClient, PutItemCommand, AttributeValue } from '@aws-sdk/client-dynamodb';
+import { format } from './format';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
 type TransformInput = {
@@ -28,17 +29,4 @@ export const handler : Handler = async (event : DynamoDBStreamEvent) => {
         }))
     });
     await Promise.all(records);
-}
-
-const format = (history : any[]) => {
-    const getAllHistory = history;
-    return getAllHistory.map(({ player, chips, placeChip, winner, nextRoll }) => {
-        if (placeChip === 'P') {
-            let output = `Player ${player}: ${chips}`;
-            output += winner ? '(W)' : '';
-            output += nextRoll ? '(*)' : '';
-            return output;
-        }
-        return `Center: ${chips}`;
-    }).join(' | ');
 }
