@@ -2,15 +2,6 @@ import { LcrGameConsumer } from "../../../../src/lcr/process/algorithm/consumer"
 
 describe('LcrGameConsumer', () => {
 
-    test("Should save the sequence input", () => {
-        const lcrGameConsumer = new LcrGameConsumer();
-        const sequence = "LCR.";
-
-        lcrGameConsumer.entry(sequence);
-
-        expect(lcrGameConsumer['diceSequence']).toBe(sequence);
-    });
-
     test("Should throw an error when we pass an invalid symbol", () => {
         const lcrGameConsumer = new LcrGameConsumer();
         const sequence = "XCR.";

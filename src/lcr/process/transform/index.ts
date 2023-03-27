@@ -1,7 +1,6 @@
 import { DynamoDBStreamEvent, Handler } from 'aws-lambda';
 import { DynamoDBClient, PutItemCommand, AttributeValue } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import {EOL} from 'os';
 
 type TransformInput = {
     gameId: string,
@@ -14,7 +13,6 @@ export const handler : Handler = async (event : DynamoDBStreamEvent) => {
         const {
             dynamodb
         } = item;
-        console.log(dynamodb?.NewImage, typeof dynamodb?.NewImage)
         const {
             gameId,
             result

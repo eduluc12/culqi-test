@@ -38,7 +38,7 @@ For building we need to execute the next command in the project's root
 npm build
 ```
 
-## Deploy
+## Deploying
 
 For deploying our game, we need to have our **AWS's Credentials**, afterwards we just need to execute the next command
 

@@ -35,7 +35,7 @@ export class LcrGameController{
     @Get('/:gameId')
     async process(@Param('gameId') gameId : string){
         const gameData = await this.redis.get(gameId);
-        if(!gameData) throw new Error();
+        if(!gameData) throw new Error("We cannot find the game session");
         const result = await this.lambda.send(new InvokeCommand({
             FunctionName: process.env.LAMBDA_PROCESS,
             Payload: Buffer.from(gameData)
