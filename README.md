@@ -62,7 +62,7 @@ For destroying the infrastructure, we need to have our **AWS's Credentials**, af
 npm run destroy
 ```
 
-## Steps
+## How does it work ?
 
 1) We'll create a game session, as a result we're going to have an ID (game session id)
 
